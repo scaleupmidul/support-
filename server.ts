@@ -10,15 +10,15 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { db } from "./server/db.js";
-import { Role } from "./src/types.js";
+import { db } from "./server/db";
+import { Role } from "./src/types";
 import { 
   metaState, 
   webhookLogs, 
   setIoInstance, 
   triggerInboundMetaWebhook, 
   RedisQueue 
-} from "./server/metaIntegration.js";
+} from "./server/metaIntegration";
 
 dotenv.config();
 
