@@ -9,7 +9,7 @@ import {
   Role, User, Business, TeamMember, Channel, Customer, 
   Conversation, Message, Product, Order, KnowledgeArticle, 
   FAQ, AISettings, Subscription, DashboardMetrics, AnalyticsTrend 
-} from "../src/types.js";
+} from "../src/types";
 
 const DB_PATH = path.join(process.cwd(), "server-db.json");
 
