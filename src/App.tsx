@@ -35,6 +35,12 @@ import {
   KnowledgeArticle, AISettings, DashboardMetrics, AnalyticsTrend 
 } from "./types.js";
 
+import { 
+  defaultCustomers, defaultConversations, defaultProducts, 
+  defaultOrders, defaultChannels, defaultFaqs, defaultSettings, 
+  defaultArticles, defaultMetrics, defaultTrends 
+} from "./defaultData.js";
+
 type TabType = 
   | "dashboard" | "inbox" | "crm" | "catalog" | "knowledge" | "integrations" | "team" | "settings"
   | "automation" | "notifications" | "reports" | "billing" | "security" | "backup";
@@ -53,17 +59,17 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Core database state
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [settings, setSettings] = useState<AISettings | null>(null);
-  const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [trends, setTrends] = useState<AnalyticsTrend[]>([]);
+  // Core database state with rich defaults
+  const [customers, setCustomers] = useState<Customer[]>(defaultCustomers);
+  const [conversations, setConversations] = useState<any[]>(defaultConversations);
+  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [channels, setChannels] = useState<Channel[]>(defaultChannels);
+  const [faqs, setFaqs] = useState<FAQ[]>(defaultFaqs);
+  const [settings, setSettings] = useState<AISettings | null>(defaultSettings);
+  const [articles, setArticles] = useState<KnowledgeArticle[]>(defaultArticles);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(defaultMetrics);
+  const [trends, setTrends] = useState<AnalyticsTrend[]>(defaultTrends);
 
   const [activeBusiness, setActiveBusiness] = useState<"aura" | "handicrafts">("aura");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -128,8 +134,19 @@ export default function App() {
   const displayTrends = activeBusiness === "handicrafts" ? handicraftsTrends : trends;
 
   // UI state
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Safe JSON parser helper
+  const safeJsonFetch = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
 
   // Fetch all database records
   const fetchAllData = async (isSilent = false) => {
@@ -138,55 +155,32 @@ export default function App() {
 
     try {
       const [
-        customersRes, conversationsRes, productsRes, 
-        ordersRes, channelsRes, faqsRes, settingsRes,
-        articlesRes, metricsRes, trendsRes
+        customersData, conversationsData, productsData, 
+        ordersData, channelsData, faqsData, settingsData,
+        articlesData, metricsData, trendsData
       ] = await Promise.all([
-        fetch("/api/customers"),
-        fetch("/api/conversations"),
-        fetch("/api/products"),
-        fetch("/api/orders"),
-        fetch("/api/channels"),
-        fetch("/api/faqs"),
-        fetch("/api/settings"),
-        fetch("/api/knowledge"),
-        fetch("/api/analytics/metrics"),
-        fetch("/api/analytics/trends")
+        safeJsonFetch("/api/customers"),
+        safeJsonFetch("/api/conversations"),
+        safeJsonFetch("/api/products"),
+        safeJsonFetch("/api/orders"),
+        safeJsonFetch("/api/channels"),
+        safeJsonFetch("/api/faqs"),
+        safeJsonFetch("/api/settings"),
+        safeJsonFetch("/api/knowledge"),
+        safeJsonFetch("/api/analytics/metrics"),
+        safeJsonFetch("/api/analytics/trends")
       ]);
 
-      if (
-        customersRes.ok && conversationsRes.ok && productsRes.ok && 
-        ordersRes.ok && channelsRes.ok && faqsRes.ok && settingsRes.ok &&
-        articlesRes.ok && metricsRes.ok && trendsRes.ok
-      ) {
-        const [
-          customersData, conversationsData, productsData, 
-          ordersData, channelsData, faqsData, settingsData,
-          articlesData, metricsData, trendsData
-        ] = await Promise.all([
-          customersRes.json(),
-          conversationsRes.json(),
-          productsRes.json(),
-          ordersRes.json(),
-          channelsRes.json(),
-          faqsRes.json(),
-          settingsRes.json(),
-          articlesRes.json(),
-          metricsRes.json(),
-          trendsRes.json()
-        ]);
-
-        setCustomers(customersData);
-        setConversations(conversationsData);
-        setProducts(productsData);
-        setOrders(ordersData);
-        setChannels(channelsData);
-        setFaqs(faqsData);
-        setSettings(settingsData);
-        setArticles(articlesData);
-        setMetrics(metricsData);
-        setTrends(trendsData);
-      }
+      if (customersData) setCustomers(customersData);
+      if (conversationsData) setConversations(conversationsData);
+      if (productsData) setProducts(productsData);
+      if (ordersData) setOrders(ordersData);
+      if (channelsData) setChannels(channelsData);
+      if (faqsData) setFaqs(faqsData);
+      if (settingsData) setSettings(settingsData);
+      if (articlesData) setArticles(articlesData);
+      if (metricsData) setMetrics(metricsData);
+      if (trendsData) setTrends(trendsData);
     } catch (e) {
       console.error("Failed to synchronize support records:", e);
     } finally {
