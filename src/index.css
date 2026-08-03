@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@utility scrollbar-none {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ==========================================================================
+   Obsidian Dark Studio Theme System
+   ========================================================================== */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #08090d;
+  color: #f1f5f9;
+}
+
+/* High contrast Dark Studio Surfaces */
+.dark .bg-white {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc;
+}
+
+.dark .bg-gray-50, 
+.dark .bg-gray-50\/30, 
+.dark .bg-gray-50\/50,
+.dark .bg-gray-50\/70 {
+  background-color: #0b0f19 !important;
+  color: #e2e8f0;
+}
+
+.dark .bg-gray-100,
+.dark .bg-gray-100\/55,
+.dark .bg-gray-100\/60,
+.dark .bg-gray-100\/70 {
+  background-color: #161e2e !important;
+  color: #f1f5f9;
+}
+
+/* Borders & Separators */
+.dark .border-gray-50,
+.dark .border-gray-100, 
+.dark .border-gray-200, 
+.dark .border-gray-200\/80, 
+.dark .border-gray-300 {
+  border-color: #1e293b !important;
+}
+
+/* Typography in Dark Studio */
+.dark .text-gray-950,
+.dark .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-800, 
+.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-600, 
+.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* Form Controls & Inputs */
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #111827 !important;
+  color: #f8fafc !important;
+  border-color: #1f293d !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Interactive Hover States */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #161e2e !important;
+}
+
+.dark .hover\:bg-gray-100:hover, 
+.dark .hover\:bg-gray-100\/55:hover, 
+.dark .hover\:bg-gray-100\/60:hover, 
+.dark .hover\:bg-gray-100\/70:hover {
+  background-color: #1e293b !important;
+}
+
+/* Active State Highlights */
+.dark .bg-indigo-50 {
+  background-color: #1e1b4b !important;
+  color: #818cf8 !important;
+}
+
+.dark .text-indigo-700 {
+  color: #a5b4fc !important;
+}
+
+/* Shadows in Dark Studio */
+.dark .shadow-xs, 
+.dark .shadow-sm, 
+.dark .shadow-md, 
+.dark .shadow-lg, 
+.dark .shadow-2xl {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
+}

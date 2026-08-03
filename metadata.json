@@ -1,0 +1,8 @@
+{
+  "name": "Remix: SmartSupport AI",
+  "description": "A Gemini-powered platform automating customer support across WhatsApp and social media with CRM, lead collection, and human takeover capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
