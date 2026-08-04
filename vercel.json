@@ -2,13 +2,13 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server-db.json"
+      "includeFiles": "{dist-server/**,server-db.json}"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index"
     },
     {
       "source": "/(.*)",
