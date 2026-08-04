@@ -88,16 +88,20 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
         // Scroll to bottom once on initial load
         setTimeout(scrollToBottom, 200);
         fetchSmartReplies(activeConvId);
-        // Setup polling for live replies
+        // Setup polling for live replies & list updates
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = setInterval(() => {
           fetchMessages(activeConvId, true);
+          onRefresh();
         }, 3000);
       } else {
         setMessages([]);
         setSmartReplies([]);
         setDetectedSentiment("");
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = setInterval(() => {
+          onRefresh();
+        }, 3000);
       }
     };
     loadData();
@@ -333,14 +337,17 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
 
   // Filter conversations
   const filteredConversations = conversations.filter(conv => {
+    const q = (searchQuery || '').toLowerCase().trim();
     const matchesSearch = 
-      (conv.customerName || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-      (conv.lastMessageText || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-      (conv.customerPhone && conv.customerPhone.includes(searchQuery)) ||
-      (conv.customerTags && conv.customerTags.some(t => t && t.toLowerCase().includes((searchQuery || '').toLowerCase())));
+      !q ||
+      (conv.customerName || '').toLowerCase().includes(q) ||
+      (conv.lastMessageText || '').toLowerCase().includes(q) ||
+      (conv.customerPhone && conv.customerPhone.toLowerCase().includes(q)) ||
+      (conv.customerEmail && conv.customerEmail.toLowerCase().includes(q)) ||
+      (conv.customerTags && conv.customerTags.some(t => t && t.toLowerCase().includes(q)));
     
     const matchesChannel = channelFilter === "all" || conv.channel === channelFilter;
-    const matchesStatus = conv.status === statusFilter;
+    const matchesStatus = q !== "" ? true : (conv.status === statusFilter);
 
     return matchesSearch && matchesChannel && matchesStatus;
   });
