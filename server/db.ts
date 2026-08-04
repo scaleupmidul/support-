@@ -583,6 +583,23 @@ export const db = {
     }
     return null;
   },
+  deleteCustomer: (id: string) => {
+    const data = readDb();
+    data.customers = data.customers.filter(c => c.id !== id);
+    const convsToRemove = data.conversations.filter(conv => conv.customerId === id).map(c => c.id);
+    data.conversations = data.conversations.filter(conv => conv.customerId !== id);
+    data.messages = data.messages.filter(m => !convsToRemove.includes(m.conversationId));
+    writeDb(data);
+    return true;
+  },
+  clearAllCustomers: () => {
+    const data = readDb();
+    data.customers = [];
+    data.conversations = [];
+    data.messages = [];
+    writeDb(data);
+    return true;
+  },
 
   getConversations: () => {
     const data = readDb();
