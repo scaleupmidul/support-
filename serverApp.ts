@@ -245,10 +245,10 @@ app.get("/api/messages", (req, res) => {
   if (currentConv && currentConv.status === "auto_pilot" && messages.length > 0 && !activeAIGenerations.has(conversationId as string)) {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.senderType === "customer") {
-      // Deliberate delay of 3 seconds to carefully analyze and prevent rushed/wrong replies
+      // Reduced delay to provide instant responses
       setTimeout(() => {
         triggerAIResponse(conversationId as string);
-      }, 3000);
+      }, 300);
     }
   }
 });
@@ -384,10 +384,30 @@ function simulateAIResponseFallback(customerMessage: string, customerName: strin
     }
     customerIntent = "query";
   }
+  // What do you do / What are you doing / কি করেন / ki koren
+  else if (text.includes("ki koren") || text.includes("কি করেন") || text.includes("কি করো") || text.includes("ki korcho") || text.includes("ki korchhen") || text.includes("what do you do") || text.includes("what are you doing")) {
+    if (isBangla) {
+      replyText = `আমি Aura Boutique-এর AI সহকারী। আমি প্রোডাক্টের তথ্য, দাম, সাইজ, ডেলিভারি এবং অর্ডার নিতে সাহায্য করি। বলুন, কীভাবে সাহায্য করতে পারি?`;
+    } else if (isBanglish) {
+      replyText = `Ami Aura Boutique-er AI assistant! Product details, price, size, delivery info, ba order record korte help korte pari. Kivabe help korbo bolun?`;
+    } else {
+      replyText = `I am Aura Boutique's assistant. I can help you with product information, prices, sizes, delivery options, and order placement! How can I assist you?`;
+    }
+    customerIntent = "query";
+  }
+  // Bangla language inquiry
+  else if (text.includes("bangla") || text.includes("বাংলা") || text.includes("banglay") || text.includes("বাংলায়")) {
+    if (isBangla) {
+      replyText = `হ্যাঁ, অবশ্যই! আমি বাংলায় কথা বলতে পারি। বলুন, আপনার কী সাহায্য লাগবে?`;
+    } else {
+      replyText = `Yes, I can communicate in Bangla and English! How can I help you today?`;
+    }
+    customerIntent = "query";
+  }
   // How are you check
   else if (text.includes("kemon achen") || text.includes("কেমন আছেন") || text.includes("কেমন আছ") || text.includes("kemon aco") || text.includes("kemon acho") || text.includes("how are you")) {
     if (isBangla) {
-      replyText = `আলহামদুলিল্লাহ্‌, ভালো আছি। আপনি কেমন আছেন? আপনাদের কীভাবে সাহায্য করতে পারি?`;
+      replyText = `আলহামদুলিল্লাহ্‌, ভালো আছি। আপনি কেমন আছেন? আপনাকে কীভাবে সাহায্য করতে পারি?`;
     } else if (isBanglish) {
       replyText = `Alhamdulillah, bhalo achi. Apni kemon achen? apnader kivabe help korte pari?`;
     } else {
@@ -395,14 +415,14 @@ function simulateAIResponseFallback(customerMessage: string, customerName: strin
     }
     customerIntent = "greeting";
   }
-  // Friendly Greeting
+  // General response
   else {
     if (isBangla) {
-      replyText = `আসসালামু আলাইকুম, ${customerName}! Aura Boutique-এ আপনাদের স্বাগতম। আপনাদের কীভাবে সাহায্য করতে পারি?`;
+      replyText = `জি বলুন, কীভাবে সাহায্য করতে পারি? আমাদের প্রোডাক্টের কালেকশন, সাইজ, ক্যাটালগ বা অর্ডার সম্পর্কে যেকোনো প্রশ্ন করতে পারেন।`;
     } else if (isBanglish) {
-      replyText = `Assalamu Alaikum, ${customerName}! Aura Boutique-e apnake shagotom. apnader kivabe help korte pari?`;
+      replyText = `Ji bolun, kivabe help korte pari? Amader product collection, size, ba order somporke jekono prosno korte paren!`;
     } else {
-      replyText = `Assalamu Alaikum, ${customerName}! Welcome to Aura Boutique. How can we help you today?`;
+      replyText = `How can I help you? Feel free to ask about our product catalog, sizing, delivery, or placing an order!`;
     }
     customerIntent = "greeting";
   }
@@ -594,7 +614,7 @@ async function triggerAIResponse(conversationId: string) {
 
       try {
         const response = await aiClient.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.5-flash",
           contents: `The customer says: "${lastCustomerMessage.text}"`,
           config: {
             systemInstruction,
@@ -1554,6 +1574,7 @@ app.post(["/api/meta/webhook", "/meta/webhook"], async (req, res) => {
               platform,
               eventType: "delivery",
               customerName: `Meta User ${senderId.slice(-4)}`,
+              customerPhone: `ID: ${senderId}`,
               messageId: messagingEvent.delivery.mids?.[0],
               recipientId
             });
@@ -1562,6 +1583,7 @@ app.post(["/api/meta/webhook", "/meta/webhook"], async (req, res) => {
               platform,
               eventType: "read",
               customerName: `Meta User ${senderId.slice(-4)}`,
+              customerPhone: `ID: ${senderId}`,
               recipientId
             });
           }
