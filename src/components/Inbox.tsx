@@ -35,7 +35,7 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"auto_pilot" | "open" | "closed">("auto_pilot");
+  const [statusFilter, setStatusFilter] = useState<"all" | "auto_pilot" | "open" | "closed">("all");
   
   // Right side panel profile state
   const [editingProfile, setEditingProfile] = useState(false);
@@ -347,7 +347,7 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
       (conv.customerTags && conv.customerTags.some(t => t && t.toLowerCase().includes(q)));
     
     const matchesChannel = channelFilter === "all" || conv.channel === channelFilter;
-    const matchesStatus = q !== "" ? true : (conv.status === statusFilter);
+    const matchesStatus = statusFilter === "all" || q !== "" || conv.id === activeConvId || conv.status === statusFilter;
 
     return matchesSearch && matchesChannel && matchesStatus;
   });
@@ -400,7 +400,13 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
           </div>
 
           {/* Queues (Status filter) */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-lg text-xs font-semibold">
+          <div className="grid grid-cols-4 gap-1 p-1 bg-gray-100 rounded-lg text-xs font-semibold">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`py-1.5 rounded-md transition-colors ${statusFilter === "all" ? "bg-white text-gray-900 shadow-xs" : "text-gray-500 hover:text-gray-900"}`}
+            >
+              All
+            </button>
             <button
               onClick={() => setStatusFilter("auto_pilot")}
               className={`py-1.5 rounded-md transition-colors ${statusFilter === "auto_pilot" ? "bg-white text-indigo-600 shadow-xs" : "text-gray-500 hover:text-gray-900"}`}
