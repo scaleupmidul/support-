@@ -29,6 +29,7 @@ import Billing from "./components/Billing.js";
 import Security from "./components/Security.js";
 import Backup from "./components/Backup.js";
 import GlobalSearch from "./components/GlobalSearch.js";
+import PrivacyPolicy from "./components/PrivacyPolicy.js";
 
 import { 
   Customer, Conversation, Message, Product, Order, Channel, FAQ, 
@@ -43,11 +44,16 @@ import {
 
 type TabType = 
   | "dashboard" | "inbox" | "crm" | "catalog" | "knowledge" | "integrations" | "team" | "settings"
-  | "automation" | "notifications" | "reports" | "billing" | "security" | "backup";
+  | "automation" | "notifications" | "reports" | "billing" | "security" | "backup" | "privacy";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(true); // Pre-logged in for rapid demo/testing
-  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (typeof window !== "undefined" && (window.location.pathname.includes("/privacy") || window.location.pathname.includes("/privacy-policy"))) {
+      return "privacy";
+    }
+    return "dashboard";
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Default Obsidian Dark Studio Theme
 
@@ -403,6 +409,7 @@ export default function App() {
     { id: "billing", label: "SaaS Billing", icon: CreditCard },
     { id: "security", label: "Security Logs", icon: Shield },
     { id: "backup", label: "Backup & Recovery", icon: Database },
+    { id: "privacy", label: "Privacy Policy", icon: Shield },
     { id: "settings", label: "System Settings", icon: SettingsIcon }
   ];
 
@@ -684,6 +691,10 @@ export default function App() {
 
           {activeTab === "backup" && (
             <Backup />
+          )}
+
+          {activeTab === "privacy" && (
+            <PrivacyPolicy />
           )}
 
           {activeTab === "settings" && displaySettings && (
