@@ -209,10 +209,10 @@ export class RedisQueue {
       }
     }
 
-    // Simulate network processing delay (e.g. 800ms)
+    // Fast queue transition
     setTimeout(() => {
       this.processNext();
-    }, 800);
+    }, 50);
   }
 
   static getQueueLength() {
@@ -399,7 +399,7 @@ export async function triggerInboundMetaWebhook(params: {
         } catch (e) {
           console.error("Delayed AI execution failover:", e);
         }
-      }, 1000);
+      }, 100);
     } else {
       newLog.steps.push({ name: "AI Autopilot Paused (Human Takeover)", timestamp: new Date().toISOString(), status: "success" });
     }
