@@ -9,9 +9,10 @@ import {
   Role, User, Business, TeamMember, Channel, Customer, 
   Conversation, Message, Product, Order, KnowledgeArticle, 
   FAQ, AISettings, Subscription, DashboardMetrics, AnalyticsTrend 
-} from "../src/types";
+} from "../src/types.js";
 
 const DB_PATH = path.join(process.cwd(), "server-db.json");
+const TMP_DB_PATH = path.join("/tmp", "server-db.json");
 
 interface DatabaseSchema {
   business: Business;
@@ -496,12 +497,15 @@ const defaultData: DatabaseSchema = {
 // Helper to read and write database
 export function readDb(): DatabaseSchema {
   try {
-    if (!fs.existsSync(DB_PATH)) {
-      fs.writeFileSync(DB_PATH, JSON.stringify(defaultData, null, 2), "utf-8");
-      return defaultData;
+    if (fs.existsSync(TMP_DB_PATH)) {
+      const content = fs.readFileSync(TMP_DB_PATH, "utf-8");
+      return JSON.parse(content) as DatabaseSchema;
     }
-    const content = fs.readFileSync(DB_PATH, "utf-8");
-    return JSON.parse(content) as DatabaseSchema;
+    if (fs.existsSync(DB_PATH)) {
+      const content = fs.readFileSync(DB_PATH, "utf-8");
+      return JSON.parse(content) as DatabaseSchema;
+    }
+    return defaultData;
   } catch (error) {
     console.error("Error reading database:", error);
     return defaultData;
@@ -510,9 +514,16 @@ export function readDb(): DatabaseSchema {
 
 export function writeDb(data: DatabaseSchema): void {
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+    fs.writeFileSync(TMP_DB_PATH, JSON.stringify(data, null, 2), "utf-8");
   } catch (error) {
-    console.error("Error writing database:", error);
+    console.error("Error writing to /tmp database:", error);
+  }
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+    }
+  } catch {
+    // Ignore read-only filesystem errors on Vercel
   }
 }
 
