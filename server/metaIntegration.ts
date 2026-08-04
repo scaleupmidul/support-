@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { Server } from "socket.io";
 
 // Real-time developer logs and architecture tracker
