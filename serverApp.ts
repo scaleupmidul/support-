@@ -1439,7 +1439,7 @@ app.get("/api/meta/webhook", (req, res) => {
   if (mode && token) {
     if (mode === "subscribe" && validTokens.includes(token as string)) {
       console.log("[META WEBHOOK] Verification successful for token:", token);
-      return res.status(200).send(challenge);
+      return res.status(200).type("text/plain").send(String(challenge || ""));
     } else {
       console.warn("[META WEBHOOK] Verification failed. Token mismatch:", token);
       return res.sendStatus(403);
