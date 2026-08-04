@@ -1420,12 +1420,16 @@ app.get("/api/meta/webhook/logs", (req, res) => {
 });
 
 // Real Meta Webhook Verification Endpoint (GET)
-app.get("/api/meta/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
+app.get(["/api/meta/webhook", "/meta/webhook"], (req, res) => {
+  console.log("[META WEBHOOK GET RECEIVED]:", req.url, req.query);
 
-  const validTokens = [
+  const query = req.query || {};
+  // Extract hub parameters flexibly regardless of query parser format or dot notation
+  const mode = (query["hub.mode"] || (query.hub as any)?.mode || query.mode || "").toString();
+  const token = (query["hub.verify_token"] || (query.hub as any)?.verify_token || query.verify_token || query.token || "").toString().trim();
+  const challenge = (query["hub.challenge"] || (query.hub as any)?.challenge || query.challenge || "").toString();
+
+  const rawEnvTokens = [
     process.env.META_VERIFY_TOKEN,
     process.env.META_VERIFY_TOKEN_1,
     process.env.META_VERIFY_TOKEN_2,
@@ -1434,22 +1438,31 @@ app.get("/api/meta/webhook", (req, res) => {
     metaState.instagramAccount?.webhookVerifyToken,
     metaState.whatsappAccount?.webhookVerifyToken,
     ...metaState.facebookPages.map(p => p.webhookVerifyToken)
-  ].filter(Boolean);
+  ];
 
-  if (mode && token) {
-    if (mode === "subscribe" && validTokens.includes(token as string)) {
-      console.log("[META WEBHOOK] Verification successful for token:", token);
-      return res.status(200).type("text/plain").send(String(challenge || ""));
-    } else {
-      console.warn("[META WEBHOOK] Verification failed. Token mismatch:", token);
-      return res.sendStatus(403);
-    }
+  const validTokens = rawEnvTokens
+    .filter(Boolean)
+    .map(t => String(t).trim().replace(/^["']|["']$/g, ""));
+
+  console.log("[META WEBHOOK VERIFY CHECK]", { mode, token, challenge, validTokensCount: validTokens.length });
+
+  if ((mode === "subscribe" || mode === "") && token && validTokens.includes(token)) {
+    console.log("[META WEBHOOK] Verification successful for token:", token);
+    return res.status(200).type("text/plain").send(challenge);
   }
-  return res.sendStatus(400);
+
+  // Fallback match: if token is valid, return challenge
+  if (token && validTokens.includes(token)) {
+    console.log("[META WEBHOOK] Verification fallback successful for token:", token);
+    return res.status(200).type("text/plain").send(challenge);
+  }
+
+  console.warn("[META WEBHOOK] Verification failed. Token mismatch or missing parameters. Token received:", token);
+  return res.status(403).send("Verification failed");
 });
 
 // Real Meta Webhook Ingress (POST)
-app.post("/api/meta/webhook", async (req, res) => {
+app.post(["/api/meta/webhook", "/meta/webhook"], async (req, res) => {
   const body = req.body;
   console.log("[META WEBHOOK RECEIVED]:", JSON.stringify(body, null, 2));
 
