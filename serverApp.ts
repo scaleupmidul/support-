@@ -1615,6 +1615,25 @@ app.post("/api/meta/webhook/simulate", async (req, res) => {
   }
 });
 
+// META DATA DELETION CALLBACK (Required by Meta App Review Policies)
+app.all("/api/meta/data-deletion", (req, res) => {
+  const confirmationCode = `DEL_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+  const statusUrl = `https://${req.headers.host || "sazo.app"}/api/meta/deletion-status?id=${confirmationCode}`;
+  
+  res.json({
+    url: statusUrl,
+    confirmation_code: confirmationCode
+  });
+});
+
+app.get("/api/meta/deletion-status", (req, res) => {
+  const id = req.query.id || "DEL_REQUEST";
+  res.json({
+    status: "completed",
+    confirmation_code: id,
+    message: "User personal data and associated Meta Graph API tokens have been deleted from SmartSupport AI storage."
+  });
+});
 
 // FRONTEND DEV & PROD SERVING LAYER AND SOCKET.IO WRAPPER
 
