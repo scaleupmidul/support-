@@ -237,6 +237,40 @@ export default function App() {
     return false;
   };
 
+  // MUTATION: Delete Single Customer
+  const handleDeleteCustomer = async (id: string) => {
+    try {
+      const res = await fetch(`/api/customers/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setCustomers(prev => prev.filter(c => c.id !== id));
+        await fetchAllData(true);
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  };
+
+  // MUTATION: Clear All Customers (Permanent Delete)
+  const handleClearAllCustomers = async () => {
+    try {
+      const res = await fetch("/api/customers", {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setCustomers([]);
+        await fetchAllData(true);
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  };
+
   // MUTATION: Add E-Commerce Product
   const handleAddProduct = async (prod: Omit<Product, "id">) => {
     try {
@@ -635,6 +669,8 @@ export default function App() {
             <CRM 
               customers={displayCustomers} 
               onAddCustomer={handleAddCustomer} 
+              onDeleteCustomer={handleDeleteCustomer}
+              onClearAllCustomers={handleClearAllCustomers}
             />
           )}
 
