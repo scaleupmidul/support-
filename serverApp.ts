@@ -8,7 +8,6 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { db } from "./server/db.js";
 import { Role } from "./src/types.js";
@@ -1651,6 +1650,7 @@ io.on("connection", (socket) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
