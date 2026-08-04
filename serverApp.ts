@@ -16,7 +16,10 @@ import {
   webhookLogs, 
   setIoInstance, 
   triggerInboundMetaWebhook, 
-  RedisQueue 
+  RedisQueue,
+  setAiTriggerHandler,
+  sendMetaOutgoingMessage,
+  fetchMetaUserProfile
 } from "./server/metaIntegration.js";
 
 dotenv.config();
@@ -150,6 +153,16 @@ app.put("/api/customers/:id", (req, res) => {
   } else {
     res.status(404).json({ error: "Customer not found" });
   }
+});
+
+app.delete("/api/customers/:id", (req, res) => {
+  db.deleteCustomer(req.params.id);
+  res.json({ success: true, message: "Customer deleted successfully" });
+});
+
+app.delete("/api/customers", (req, res) => {
+  db.clearAllCustomers();
+  res.json({ success: true, message: "All customers cleared successfully" });
 });
 
 // 6. Conversations
@@ -652,6 +665,14 @@ async function triggerAIResponse(conversationId: string) {
       text: aiResult.replyText
     });
 
+    // 1b. Dispatch reply to Meta Graph API if Facebook / Instagram / WhatsApp customer
+    const recipientId = customer.phone ? customer.phone.replace(/^ID:\s*/, '').trim() : '';
+    if (recipientId) {
+      sendMetaOutgoingMessage(conv.channel, recipientId, aiResult.replyText).catch(err => {
+        console.error("[META GRAPH API OUTBOUND ERROR]:", err);
+      });
+    }
+
     // 2. Lead updates
     if (aiResult.collectedLeadInfo) {
       const updates: any = {};
@@ -733,6 +754,9 @@ async function triggerAIResponse(conversationId: string) {
   }
 }
 
+// Register internal handler for Meta Queue executor
+setAiTriggerHandler(triggerAIResponse);
+
 // 8. Message Send Trigger (Both Customer simulation and representative replies)
 app.post("/api/messages/send", (req, res) => {
   const { conversationId, senderType, senderName, text } = req.body;
@@ -752,6 +776,20 @@ app.post("/api/messages/send", (req, res) => {
   if (senderType === "human") {
     db.updateConversationStatus(conversationId, "open");
     db.recordConversationHandled(false);
+
+    // Send outgoing message to Facebook / Instagram / WhatsApp via Graph API
+    const convs = db.getConversations();
+    const conv = convs.find(c => c.id === conversationId);
+    if (conv) {
+      const customers = db.getCustomers();
+      const customer = customers.find(c => c.id === conv.customerId);
+      const recipientId = customer?.phone ? customer.phone.replace(/^ID:\s*/, '').trim() : '';
+      if (recipientId) {
+        sendMetaOutgoingMessage(conv.channel, recipientId, text).catch(err => {
+          console.error("[META GRAPH API OUTBOUND HUMAN REPLY ERROR]:", err);
+        });
+      }
+    }
   }
 
   // Respond immediately with the saved message
