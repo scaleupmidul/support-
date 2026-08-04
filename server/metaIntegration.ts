@@ -272,20 +272,43 @@ export async function triggerInboundMetaWebhook(params: {
   const enqueued = await RedisQueue.enqueue(mId, logId, params, async () => {
     // Execute queue item process
     const customersList = db.getCustomers();
-    let currentCustomer = customersList.find(c => c.name.toLowerCase() === params.customerName.toLowerCase() && c.channel === params.platform);
+    const rawId = params.customerPhone ? params.customerPhone.replace(/^ID:\s*/, '').trim() : '';
+
+    let currentCustomer = customersList.find(c => 
+      (rawId && c.phone && c.phone.includes(rawId)) ||
+      (rawId && c.notes && c.notes.includes(rawId)) ||
+      (c.name.toLowerCase() === params.customerName.toLowerCase() && c.channel === params.platform)
+    );
     
+    // Fetch real profile from Meta Graph API if available for Facebook / Instagram
+    let resolvedName = params.customerName;
+    let avatarUrl: string | undefined;
+
+    if (rawId && params.platform === "facebook") {
+      const metaProfile = await fetchMetaUserProfile(rawId);
+      if (metaProfile?.name) {
+        resolvedName = metaProfile.name;
+        avatarUrl = metaProfile.avatar;
+      }
+    }
+
     // Create customer if not exists
     if (!currentCustomer) {
       currentCustomer = db.addCustomer({
-        name: params.customerName,
-        phone: params.customerPhone || "+8801700000000",
+        name: resolvedName,
+        phone: params.customerPhone || `ID: ${rawId}`,
         channel: params.platform,
         tags: ["Inbound_Lead", "Meta"],
         location: params.platform === "whatsapp" ? "Dhaka" : "Unmapped Profile",
         language: "en",
-        notes: `Profile imported automatically from ${params.platform} Webhook Ingress.`
+        avatar: avatarUrl,
+        notes: `Profile imported automatically from ${params.platform} Webhook Ingress. Meta PSID: ${rawId}`
       });
-      newLog.steps.push({ name: "Customer CRM Record Created", timestamp: new Date().toISOString(), status: "success" });
+      newLog.steps.push({ name: `Customer CRM Record Created (${resolvedName})`, timestamp: new Date().toISOString(), status: "success" });
+    } else if (currentCustomer.name.startsWith("Meta User") && resolvedName && !resolvedName.startsWith("Meta User")) {
+      // Upgrade generic customer name with real Facebook name
+      db.updateCustomer(currentCustomer.id, { name: resolvedName, avatar: avatarUrl || currentCustomer.avatar });
+      currentCustomer.name = resolvedName;
     }
 
     // Get or Create Conversation
@@ -385,22 +408,130 @@ export async function triggerInboundMetaWebhook(params: {
   return { success: enqueued, logId };
 }
 
+// AI Response Trigger Handler Holder
+let aiTriggerHandler: ((conversationId: string) => Promise<void>) | null = null;
+export function setAiTriggerHandler(handler: (conversationId: string) => Promise<void>) {
+  aiTriggerHandler = handler;
+}
+
+// Fetch real Facebook user profile (Name & Avatar) from Meta Graph API using PSID
+export async function fetchMetaUserProfile(senderId: string, accessToken?: string): Promise<{ name?: string; avatar?: string } | null> {
+  const token = accessToken || metaState.facebookPages[0]?.accessToken || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  if (!token || token.startsWith("EAAB_mock")) {
+    return null;
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v18.0/${senderId}?fields=name,first_name,last_name,profile_pic&access_token=${encodeURIComponent(token)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const fullName = data.name || (data.first_name ? `${data.first_name} ${data.last_name || ""}`.trim() : undefined);
+      return {
+        name: fullName,
+        avatar: data.profile_pic
+      };
+    }
+  } catch (err) {
+    console.error("[META GRAPH API] Error fetching user profile:", err);
+  }
+  return null;
+}
+
+// Send outgoing reply to Meta Graph API (Facebook Messenger or WhatsApp)
+export async function sendMetaOutgoingMessage(platform: string, recipientId: string, text: string, pageToken?: string) {
+  const token = pageToken || metaState.facebookPages[0]?.accessToken || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  console.log(`[META OUTGOING] Attempting to send reply to ${platform} recipient ${recipientId}...`);
+
+  if (!recipientId || recipientId.startsWith("sim_") || recipientId.startsWith("mock_")) {
+    console.log("[META OUTGOING] Simulation/mock recipient. Skipping external API call.");
+    return { success: true, simulated: true };
+  }
+
+  // Sanitize recipient ID
+  const cleanRecipientId = recipientId.replace(/^ID:\s*/, '').trim();
+
+  if (platform === "facebook" || platform === "instagram") {
+    if (!token || token.includes("mock")) {
+      console.log("[META OUTGOING] Page Access Token not configured or is mock token.");
+      return { success: false, error: "Missing Page Access Token" };
+    }
+    try {
+      const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: cleanRecipientId },
+          message: { text }
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log("[META OUTGOING SUCCESS] Delivered to Facebook Messenger:", data);
+        return { success: true, data };
+      } else {
+        console.error("[META OUTGOING ERROR] Graph API error response:", data);
+        return { success: false, error: data };
+      }
+    } catch (err: any) {
+      console.error("[META OUTGOING ERROR] Exception during Graph API call:", err);
+      return { success: false, error: err.message };
+    }
+  } else if (platform === "whatsapp") {
+    const waToken = process.env.WHATSAPP_SYSTEM_USER_ACCESS_TOKEN || token;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || metaState.whatsappAccount?.phoneNumberId;
+    if (!waToken || !phoneId || waToken.includes("mock")) {
+      console.log("[META OUTGOING] WhatsApp Cloud API credentials missing.");
+      return { success: false, error: "Missing WhatsApp credentials" };
+    }
+    try {
+      const response = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${waToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: cleanRecipientId,
+          type: "text",
+          text: { body: text }
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log("[META OUTGOING SUCCESS] Delivered to WhatsApp:", data);
+        return { success: true, data };
+      } else {
+        console.error("[META OUTGOING ERROR] WhatsApp Graph API error:", data);
+        return { success: false, error: data };
+      }
+    } catch (err: any) {
+      console.error("[META OUTGOING ERROR] WhatsApp call failed:", err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  return { success: true };
+}
+
 // Triggers external AI reply postback
 async function triggerExternalAIResponse(conversationId: string, log: WebhookLog, customerName: string) {
   try {
-    const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/ai-trigger`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }
-    });
-    if (res.ok) {
+    if (aiTriggerHandler) {
+      await aiTriggerHandler(conversationId);
       log.steps.push({ name: "Gemini Smart Response Dispatched", timestamp: new Date().toISOString(), status: "success" });
     } else {
-      // Trigger failover if API fails
-      throw new Error("Local AI Trigger API returned non-200");
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/ai-trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        log.steps.push({ name: "Gemini Smart Response Dispatched", timestamp: new Date().toISOString(), status: "success" });
+      } else {
+        throw new Error("Local AI Trigger API returned non-200");
+      }
     }
   } catch (e) {
     console.error("AI trigger failed. Falling back.", e);
-    // Notify admin & Failover Response
     const config = db.getSettings();
     const fallbackText = "🤖 Failover Guard (Automatic Retry): Our connection to the neural engines timed out. Our support manager is taking over your ticket right now!";
     
