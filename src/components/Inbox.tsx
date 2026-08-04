@@ -80,6 +80,12 @@ export default function Inbox({ conversations, products, orders, onRefresh, onUp
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (!activeConvId && conversations.length > 0) {
+      setActiveConvId(conversations[0].id);
+    }
+  }, [conversations, activeConvId]);
+
   // Load messages when conversation changes
   useEffect(() => {
     const loadData = async () => {
