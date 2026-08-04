@@ -6,16 +6,19 @@
 import React, { useState } from "react";
 import { 
   Users, Mail, Phone, MapPin, Tag, Search, Plus, 
-  Smartphone, Globe, Calendar, FileText, CheckCircle2 
+  Smartphone, Globe, Calendar, FileText, CheckCircle2,
+  Trash2, AlertTriangle
 } from "lucide-react";
 import { Customer } from "../types.js";
 
 interface CRMProps {
   customers: Customer[];
   onAddCustomer: (customer: Omit<Customer, "id" | "createdAt" | "lastActive">) => Promise<any>;
+  onDeleteCustomer?: (id: string) => Promise<any>;
+  onClearAllCustomers?: () => Promise<any>;
 }
 
-export default function CRM({ customers, onAddCustomer }: CRMProps) {
+export default function CRM({ customers, onAddCustomer, onDeleteCustomer, onClearAllCustomers }: CRMProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
@@ -23,6 +26,9 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
 
   // New customer modal state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
   const [newCustEmail, setNewCustEmail] = useState("");
@@ -57,6 +63,26 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
     setShowAddModal(false);
   };
 
+  const handleDeleteSingle = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDeletingId(id);
+    if (onDeleteCustomer) {
+      await onDeleteCustomer(id);
+    }
+    if (selectedCustomerId === id) {
+      setSelectedCustomerId(null);
+    }
+    setDeletingId(null);
+  };
+
+  const handleClearAll = async () => {
+    if (onClearAllCustomers) {
+      await onClearAllCustomers();
+    }
+    setSelectedCustomerId(null);
+    setShowClearConfirmModal(false);
+  };
+
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = 
       (c.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
@@ -75,18 +101,30 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
   return (
     <div className="space-y-6">
       {/* Upper bar */}
-      <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">CRM Customers</h1>
-          <p className="text-sm text-gray-500">Manage customer contacts, conversational leads, and automated client tags.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">CRM Customers</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage customer contacts, conversational leads, and automated client tags.</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm text-xs font-semibold transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Customer
-        </button>
+        <div className="flex items-center gap-2">
+          {customers.length > 0 && (
+            <button
+              onClick={() => setShowClearConfirmModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 rounded-xl text-xs font-semibold border border-red-200 dark:border-red-800 transition-colors"
+              title="Delete all demo customers permanently"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+              Clear Demo Customers
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-sm text-xs font-semibold transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Customer
+          </button>
+        </div>
       </div>
 
       {/* Analytics widgets */}
@@ -226,7 +264,17 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
                         {new Date(cust.lastActive).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3.5 text-right font-semibold text-indigo-600">
-                        Inspect
+                        <div className="flex items-center justify-end gap-2">
+                          <span>Inspect</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSingle(cust.id, e)}
+                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
+                            title="Delete this customer record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -332,6 +380,16 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Permanent Delete Customer Button */}
+              <button
+                type="button"
+                onClick={() => handleDeleteSingle(selectedCustomer.id)}
+                className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-red-200 dark:border-red-800 transition-colors mt-2"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                Permanently Delete Customer
+              </button>
             </div>
           ) : (
             <div className="text-center py-12 text-gray-400 flex flex-col items-center justify-center space-y-2">
@@ -441,6 +499,45 @@ export default function CRM({ customers, onAddCustomer }: CRMProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Confirmation Modal */}
+      {showClearConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-left space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="p-2.5 bg-red-100 dark:bg-red-950/60 rounded-xl">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-base">Permanently Clear Demo Data?</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+              Are you sure you want to permanently remove all demo customer records ({customers.length}) and their associated chat histories from the database?
+            </p>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirmModal(false)}
+                className="w-1/2 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="w-1/2 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Yes, Clear All
+              </button>
+            </div>
           </div>
         </div>
       )}
