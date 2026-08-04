@@ -3,84 +3,9 @@ import {
   KnowledgeArticle, AISettings, DashboardMetrics, AnalyticsTrend 
 } from "./types";
 
-export const defaultCustomers: Customer[] = [
-  {
-    id: "cust-1",
-    name: "Tanvir Rahman",
-    email: "tanvir.rahman@gmail.com",
-    phone: "+8801711223344",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
-    channel: "whatsapp",
-    tags: ["Regular", "Dhaka", "Lead"],
-    location: "Mirpur, Dhaka",
-    language: "bn",
-    notes: "Prefers Cash on Delivery. Likes cotton panjabis.",
-    createdAt: "2026-07-01T12:00:00Z",
-    lastActive: "2026-07-13T12:30:00Z"
-  },
-  {
-    id: "cust-2",
-    name: "Nusrat Jahan",
-    email: "nusrat.j@hotmail.com",
-    phone: "+8801822334455",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
-    channel: "facebook",
-    tags: ["VIP", "Chittagong"],
-    location: "Agrabad, Chittagong",
-    language: "en",
-    notes: "Ordered Silk Saree last week. Inquired about matching jewelry.",
-    createdAt: "2026-07-03T09:15:00Z",
-    lastActive: "2026-07-13T11:45:00Z"
-  },
-  {
-    id: "cust-3",
-    name: "Fahim Ahmed",
-    email: "fahim.a@yahoo.com",
-    phone: "+8801933445566",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
-    channel: "instagram",
-    tags: ["New Lead", "Sylhet"],
-    location: "Zindabazar, Sylhet",
-    language: "bn",
-    notes: "Asked about delivery time to Sylhet.",
-    createdAt: "2026-07-10T15:20:00Z",
-    lastActive: "2026-07-13T10:00:00Z"
-  }
-];
+export const defaultCustomers: Customer[] = [];
 
-export const defaultConversations: Conversation[] = [
-  {
-    id: "conv-1",
-    customerId: "cust-1",
-    channel: "whatsapp",
-    status: "auto_pilot",
-    unreadCount: 0,
-    lastMessageText: "Do you have Royal Blue Premium Cotton Panjabi in size L?",
-    lastMessageTime: "2026-07-13T12:30:00Z",
-    createdAt: "2026-07-13T12:00:00Z"
-  },
-  {
-    id: "conv-2",
-    customerId: "cust-2",
-    channel: "facebook",
-    status: "open",
-    assignedTo: "user-2",
-    unreadCount: 1,
-    lastMessageText: "I want to exchange the size of my order ORD-8812.",
-    lastMessageTime: "2026-07-13T11:45:00Z",
-    createdAt: "2026-07-12T10:00:00Z"
-  },
-  {
-    id: "conv-3",
-    customerId: "cust-3",
-    channel: "instagram",
-    status: "auto_pilot",
-    unreadCount: 0,
-    lastMessageText: "How many days for delivery inside Dhaka?",
-    lastMessageTime: "2026-07-13T10:00:00Z",
-    createdAt: "2026-07-13T09:30:00Z"
-  }
-];
+export const defaultConversations: Conversation[] = [];
 
 export const defaultProducts: Product[] = [
   {
